@@ -1,0 +1,15 @@
+{
+  "ollama": {
+    "endpoint": "http://localhost:11434/api/generate",
+    "model": "gemma3:4b",
+    "timeout": 300,
+    "max_retries": 2
+  },
+  "scanner": {
+    "max_file_size_kb": 100,
+    "max_total_context_chars": 80000,
+    "allowed_extensions": [".py", ".js", ".ts", ".jsx", ".tsx", ".json", ".md", ".yml", ".yaml", ".sh"],
+    "excluded_dirs": [".git", "node_modules", "__pycache__", "venv", "env", "dist", "build", ".next"],
+    "excluded_files": [".env", ".env.local", "id_rsa", "id_ed25519", "credentials.json"]
+  }
+}
