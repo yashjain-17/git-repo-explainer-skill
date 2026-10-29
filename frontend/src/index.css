@@ -1,0 +1,25 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap');
+
+@layer base {
+  body {
+    font-family: 'Roboto Mono', monospace;
+    background-color: #f5f5f5;
+    color: #111827;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Boost all small / secondary text contrast and weight */
+  p, span, label, input {
+    color: #1f2937;
+  }
+}
+
+::selection {
+  background-color: #f8b92a;
+  color: #0b1d30;
+}
