@@ -55,7 +55,7 @@ export function Home() {
             <span className="bg-[#f8b92a] text-[#0b1d30] font-mono font-bold text-xs px-3 py-1 rounded-[2px]">
               ALPHA RELEASE // V2.4
             </span>
-            <span className="font-mono text-xs text-[#374151] font-bold">LOCAL AST PARSING</span>
+            <span className="font-mono text-xs text-[#374151] font-bold">LOCAL REPOSITORY SCANNING</span>
           </div>
 
           <h1 className="font-mono font-bold text-[48px] leading-[56px] text-[#111827] tracking-tight">
@@ -128,9 +128,9 @@ export function Home() {
                 🧩
               </div>
               <div className="flex flex-col gap-2 font-mono">
-                <h3 className="font-bold text-lg text-[#111827]">Contribute AST Parsers</h3>
+                <h3 className="font-bold text-lg text-[#111827]">Contribute Scanner Rules</h3>
                 <p className="text-xs text-[#4b5563] leading-relaxed max-w-xs">
-                  Get everything you need to build custom language parsers and AST security rules.
+                  Help improve supported file patterns, safe exclusions, and scanner test coverage.
                 </p>
               </div>
             </div>
@@ -172,16 +172,16 @@ export function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-mono">
             <div className="bg-[#1f2937] p-6 rounded-[4px] border border-gray-700 flex flex-col gap-3">
-              <span className="text-[#f8b92a] font-bold text-sm">01 // INGESTION LAYER</span>
-              <p className="text-xs text-gray-300 leading-relaxed">Bounded file scanner ignores heavy artifacts and git caches while streaming clean syntax.</p>
+              <span className="text-[#f8b92a] font-bold text-sm">01 // REPOSITORY INGESTION</span>
+              <p className="text-xs text-gray-300 leading-relaxed">Scans supported source files while skipping dependency folders, generated output, symlinks, and oversized files.</p>
             </div>
             <div className="bg-[#1f2937] p-6 rounded-[4px] border border-gray-700 flex flex-col gap-3">
-              <span className="text-[#f8b92a] font-bold text-sm">02 // AST ENGINE</span>
-              <p className="text-xs text-gray-300 leading-relaxed">Parses code blocks locally via Ollama and Gemma models with zero external cloud egress.</p>
+              <span className="text-[#f8b92a] font-bold text-sm">02 // PATTERN CHECK ENGINE</span>
+              <p className="text-xs text-gray-300 leading-relaxed">Runs lightweight source-pattern checks. This prototype does not build abstract syntax trees.</p>
             </div>
             <div className="bg-[#1f2937] p-6 rounded-[4px] border border-gray-700 flex flex-col gap-3">
               <span className="text-[#f8b92a] font-bold text-sm">03 // REMEDIATION MATRIX</span>
-              <p className="text-xs text-gray-300 leading-relaxed">Instantly identifies CVE vulnerabilities and generates secure, production-ready code diff patches.</p>
+              <p className="text-xs text-gray-300 leading-relaxed">Reports selected risky patterns with file paths. Findings require manual review and are not CVE detection.</p>
             </div>
           </div>
         </div>
@@ -199,15 +199,15 @@ export function Home() {
             <Chip>SAFE PRUNING</Chip>
             <h3 className="font-mono font-bold text-xl text-[#111827]">Bounded File Scanners</h3>
             <p className="font-mono text-sm text-[#374151] leading-[22px]">
-              Automatically prunes heavy build artifacts, `.git` folders, binary files, and sensitive credentials before inference.
+              Skips common dependency/build folders, symbolic links, unsupported file types, and source files over the scan-size limit.
             </p>
           </Card>
 
           <Card className="flex flex-col gap-4 bg-white border-[#e5e7eb]">
             <Chip>EVIDENCE-BACKED</Chip>
-            <h3 className="font-mono font-bold text-xl text-[#111827]">Direct Code Linking</h3>
+            <h3 className="font-mono font-bold text-xl text-[#111827]">File-Path Findings</h3>
             <p className="font-mono text-sm text-[#374151] leading-[22px]">
-              Restricts AI output models from hallucinating files by grounding every architectural finding directly to physical paths.
+              Each pattern finding includes the repository-relative path of the file where the pattern was detected.
             </p>
           </Card>
 
@@ -215,7 +215,7 @@ export function Home() {
             <Chip>LOCAL INFERENCE</Chip>
             <h3 className="font-mono font-bold text-xl text-[#111827]">Ollama Integration</h3>
             <p className="font-mono text-sm text-[#374151] leading-[22px]">
-              Run deep local evaluations using Gemma models with zero external data leakage or cloud dependency constraints.
+              Use a locally running Ollama model for optional patch suggestions. Review and test every suggestion before use.
             </p>
           </Card>
         </div>
