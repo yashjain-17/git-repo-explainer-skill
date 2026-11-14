@@ -33,16 +33,31 @@ export async function checkDaemonHealth() {
   }
 }
 
-export async function scanRepo(repoPath: string) {
-  return requestJson(`${API_BASE}/scan`, {
+export type ScanResponse = {
+  repo_name: string;
+  parsed_files: number;
+  status: string;
+  breakdown: string;
+  pruningLog: string;
+  roadmap: string;
+  vulnerabilities: Array<{ severity: string; message: string; file: string }>;
+};
+
+export type PatchResponse = {
+  patch_diff: string;
+  status: 'SUGGESTION_ONLY';
+};
+
+export async function scanRepo(repoPath: string): Promise<ScanResponse> {
+  return requestJson<ScanResponse>(`${API_BASE}/scan`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ repo_path: repoPath }),
   });
 }
 
-export async function generatePatch(filePath: string, vulnerability: string) {
-  return requestJson(`${API_BASE}/patch`, {
+export async function generatePatch(filePath: string, vulnerability: string): Promise<PatchResponse> {
+  return requestJson<PatchResponse>(`${API_BASE}/patch`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ file_path: filePath, vulnerability }),
