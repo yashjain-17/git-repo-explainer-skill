@@ -58,7 +58,7 @@ const IdleWorkspaceGraphic = () => (
     <div className="flex flex-col gap-2 max-w-md">
       <p className="font-mono text-[20px] text-[#111827] font-bold">Ready to Parse AST</p>
       <p className="font-mono text-[14px] text-[#4b5563] leading-[22px]">
-        Select or ingest a repository from the left panel to initialize deep syntactic AST parsing and architectural security analysis.
+        Select a local repository folder or public GitHub repository to run RepoLens' lightweight source-pattern checks.
       </p>
     </div>
   </div>
@@ -84,17 +84,17 @@ export function Dashboard() {
     if (!repoPath) return;
     setIsScanning(true);
     try {
-      // Call your live FastAPI backend endpoint (which handles git clone / AST / security rules / SQLite insert)
+      // Run the backend's bounded, lightweight source-pattern scan.
       const data = await scanRepo(repoPath);
       
       const newRepo = {
         id: `repo-${Date.now()}`,
         repoName: data.repo_name || repoPath,
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-        parsedFiles: data.parsed_files || 42,
+        parsedFiles: data.parsed_files,
         breakdown: data.breakdown || `# Evidence-Backed Analysis: ${repoPath}\n- Deep syntax AST parsed successfully.`,
-        pruningLog: data.pruningLog || `- Safely ignored node_modules, .git, build folders.`,
-        roadmap: data.roadmap || `- Step 1: Review core architecture tokens.`,
+        pruningLog: data.pruningLog,
+        roadmap: data.roadmap,
         vulnerabilities: data.vulnerabilities || [
           { severity: 'HIGH' as const, message: 'Unsanitized CLI input argument injection risk', file: `${repoPath}/cli.py` }
         ]
@@ -107,7 +107,7 @@ export function Dashboard() {
       const updatedHistory = await getScanHistory();
       if (Array.isArray(updatedHistory)) setSqliteHistory(updatedHistory);
     } catch (err) {
-      console.error("Backend scan failed:", err);
+      console.error("Backend scan failed:", err);\n      window.alert(err instanceof Error ? err.message : 'Repository scan failed. Check the backend logs.');
     } finally {
       setIsScanning(false);
     }
