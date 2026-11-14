@@ -32,7 +32,7 @@ const TelemetryMetricsGraphic = ({ fileCount }: { fileCount: number }) => (
       </div>
       <div className="flex flex-col gap-1 bg-white/10 p-3 rounded-[2px]">
         <span className="text-[10px] font-bold" style={{ color: '#cbd5e1' }}>STATUS</span>
-        <span className="text-xl font-bold" style={{ color: '#f8b92a' }}>VERIFIED</span>
+        <span className="text-xl font-bold" style={{ color: '#f8b92a' }}>LOCAL SCAN</span>
       </div>
       <div className="flex flex-col gap-1 bg-white/10 p-3 rounded-[2px]">
         <span className="text-[10px] font-bold" style={{ color: '#cbd5e1' }}>ERRORS</span>
@@ -56,7 +56,7 @@ const IdleWorkspaceGraphic = () => (
   <div className="w-full flex flex-col items-center justify-center gap-6 text-center p-12 border-2 border-dashed border-[#e5e7eb] rounded-[4px] bg-white shadow-sm">
     <div className="w-20 h-20 flex items-center justify-center text-[50px] font-black text-[#111827]/10 bg-[#f9fafb] rounded-full border border-[#e5e7eb]">Ξ</div>
     <div className="flex flex-col gap-2 max-w-md">
-      <p className="font-mono text-[20px] text-[#111827] font-bold">Ready to Parse AST</p>
+      <p className="font-mono text-[20px] text-[#111827] font-bold">Ready to Scan Repository</p>
       <p className="font-mono text-[14px] text-[#4b5563] leading-[22px]">
         Select a local repository folder or public GitHub repository to run RepoLens' lightweight source-pattern checks.
       </p>
@@ -92,7 +92,7 @@ export function Dashboard() {
         repoName: data.repo_name || repoPath,
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
         parsedFiles: data.parsed_files,
-        breakdown: data.breakdown || `# Evidence-Backed Analysis: ${repoPath}\n- Deep syntax AST parsed successfully.`,
+        breakdown: data.breakdown,
         pruningLog: data.pruningLog,
         roadmap: data.roadmap,
         vulnerabilities: data.vulnerabilities || [
@@ -186,7 +186,7 @@ export function Dashboard() {
               disabled={isScanning}
               className="w-full h-[48px] text-[14px] mt-2 cursor-pointer font-bold"
             >
-              {isScanning ? 'Parsing AST via Backend...' : 'Initialize Scan →'}
+              {isScanning ? 'Scanning repository...' : 'Initialize Scan →'}
             </Button>
           </Card>
 
