@@ -102,7 +102,7 @@ class RepoLensApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("publicly accessible", response.json()["detail"])
-        self.assertNotIn("sensitive internal clone detail", response.get_data(as_text=True))
+        self.assertNotIn("sensitive internal clone detail", response.text)
 
     def test_scan_enforces_total_analyzed_source_limit(self):
         repository = self.temp_path / "large-source-repository"
