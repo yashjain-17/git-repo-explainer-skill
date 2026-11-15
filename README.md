@@ -1,28 +1,40 @@
-# RepoLens — Repository Explorer and Local AI Assistant
+# RepoLens — Evidence-Backed Repository Explorer
 
-RepoLens is a developer tool prototype with a FastAPI backend and a React + TypeScript + Vite frontend. The backend scans a supplied local path or Git URL, stores scan history in SQLite, checks selected source patterns, and communicates with a local Ollama service.
+RepoLens is an experimental repository-analysis prototype with a FastAPI backend and a React + TypeScript + Vite frontend. It scans a supplied directory or a public GitHub repository, applies a small set of bounded source-pattern checks, records scan history in SQLite, and can request optional patch suggestions from a local Ollama model.
 
-> RepoLens is an experimental code-understanding aid, not a complete security scanner. Review all findings and generated patches manually.
+> **Scope:** RepoLens is not a complete security scanner, AST analyzer, dependency auditor, or vulnerability database. Its findings are heuristic matches that require manual review. A scan with zero matches does not prove that a repository is secure.
+
+## What currently works
+
+- Scan a directory that is accessible to the backend process, or a public HTTPS GitHub repository URL.
+- Inspect supported source/configuration files while skipping common generated/dependency folders and symbolic links.
+- Detect a limited set of patterns, currently unsafe `eval(` usage and credential-like assignments.
+- Include repository-relative file paths with each finding.
+- View the latest scan-history records stored in SQLite.
+- Check whether the local Ollama service is reachable and list models it reports.
+- Request a model-generated patch suggestion. The model receives the finding description and file path, not the source file. Suggestions are not applied or written to the repository.
+- Export the actual scan result shown in the dashboard as JSON.
 
 ## Repository layout
 
-- `backend/main.py` — FastAPI API and repository scanning logic
-- `backend/requirements.txt` — Python dependencies
-- `backend/repolens.db` — SQLite database file currently tracked in the repository
+- `backend/main.py` — FastAPI endpoints and bounded scanner
+- `backend/requirements.txt` — Python runtime and API-test dependencies
+- `backend/tests/test_main.py` — backend regression tests
+- `backend/repolens.db` — currently tracked SQLite database file; inspect before sharing because it may contain local scan history
 - `frontend/` — React + TypeScript application
-- `frontend/src/services/api.ts` — frontend API client
+- `frontend/src/services/api.ts` — frontend API client and JSON report export
+- `SKILL.md` — evidence-backed repository inspection workflow for compatible agent-skill runners
 
 ## Prerequisites
 
 - Python 3.10+
-- Node.js compatible with the Vite version in `frontend/package.json`
+- Node.js 22.12+ (or a Vite 8-compatible Node.js release)
 - npm
-- [Ollama](https://ollama.com) running locally
-- Enough memory for the configured model; the backend request model defaults to `gemma2:27b`
+- [Ollama](https://ollama.com) for optional local patch suggestions
 
 ## Start the backend
 
-Open a terminal at the repository root:
+From the repository root:
 
 ```bash
 cd backend
@@ -41,24 +53,42 @@ Activate the environment:
 source .venv/bin/activate
 ```
 
-Install and run:
+Install dependencies:
 
 ```bash
 python -m pip install --upgrade pip
-pip install -r requirements.txt
-ollama pull gemma2:27b
+python -m pip install -r requirements.txt
+```
+
+The default model is `gemma3:4b`. Pull it and start Ollama if it is not already running as a background service:
+
+```bash
+ollama pull gemma3:4b
 ollama serve
 ```
 
-If Ollama is already running as a background service, do not start a second daemon. In another terminal, still inside `backend/`:
+In another terminal, start the API from the `backend/` directory:
 
 ```bash
 uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
+The backend listens on loopback by default. Keep it running while using the frontend.
+
+### Backend environment variables
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama service base URL |
+| `OLLAMA_MODEL` | `gemma3:4b` | Model requested for patch suggestions |
+| `REPOLENS_CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated browser origins allowed by CORS |
+| `REPOLENS_DB_PATH` | `backend/repolens.db` | SQLite database path |
+
+CORS is not authentication or authorization. The frontend's demo access screen is client-side navigation only; it does not create accounts or protect API endpoints.
+
 ## Start the frontend
 
-In a second terminal:
+In a second terminal, from the repository root:
 
 ```bash
 cd frontend
@@ -66,29 +96,51 @@ npm ci
 npm run dev
 ```
 
-The frontend API client currently targets `http://127.0.0.1:8000/api`. Keep the backend running while using the UI.
+The frontend defaults to `http://127.0.0.1:8000/api` for the backend. To use a different API base URL, set `VITE_API_BASE_URL` before starting or building the frontend.
 
-Useful frontend scripts:
+Useful scripts:
 
 ```bash
-npm run build
 npm run lint
+npm run build
 npm run preview
 ```
 
-## Important limitations and safety
+## API endpoints
 
-- The backend currently enables permissive CORS. Do not expose it to an untrusted network without proper origin restrictions and authentication.
-- Repository paths and Git URLs are accepted by the scan API. Only scan repositories you own or are authorized to inspect; do not point it at sensitive directories.
-- The current pattern checks are heuristic and can produce false positives and false negatives. They are not a substitute for SAST, dependency scanning, secret scanning, or a professional security review.
-- The backend's model default is `gemma2:27b`; adjust it to a model that is actually installed and supported by your hardware.
-- The SQLite database file is tracked in the repository. Review whether it contains test or user data before publishing or sharing.
-- Generated patches must be reviewed, tested, and approved by a developer before use.
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/health` | Report Ollama connectivity and model names |
+| `POST` | `/api/scan` | Scan a local directory or public GitHub repository |
+| `GET` | `/api/history` | Return the latest ten scan-history records |
+| `POST` | `/api/patch` | Request a suggestion-only response from Ollama |
 
-## Development checks
+For `/api/scan`, the `repo_path` value is interpreted by the backend machine. A path on the browser user's computer is not automatically accessible to a separately hosted backend. Remote scans currently accept public HTTPS GitHub repository URLs only.
 
-Run `npm run build` and `npm run lint` in `frontend/`. Add backend tests for API validation, path handling, scanner exclusions, model failures, and database behavior before treating the project as production-ready.
+## Tests
+
+Run backend regression tests from the repository root:
+
+```bash
+python -m unittest discover -s backend/tests -v
+```
+
+The GitHub Actions workflow runs these tests on pushes and pull requests to `main`.
+
+## Security and prototype limitations
+
+- The API has no server-side authentication. The frontend demo gate is not a security boundary. Keep the backend on loopback or behind a properly authenticated, access-controlled service.
+- Local paths are read by the backend process. Only scan directories you own or are authorized to inspect.
+- Remote cloning is restricted to public HTTPS GitHub repository URLs. Private repositories and other Git hosts are not supported.
+- The scanner uses regular-expression pattern checks, not AST parsing, SAST, CVE matching, dependency analysis, or secret-provider validation. False positives and false negatives are expected.
+- Oversized files are skipped by the content checks. The displayed file count represents supported files encountered, not proof that every byte was analyzed.
+- Ollama patch output is untrusted model text. RepoLens does not apply it, compile it, or test it. Review and test suggestions manually.
+- The SQLite database file is currently tracked. Do not commit real user or sensitive scan history; decide on a safe database-storage and repository-cleanup policy before public deployment.
+
+## Agent skill
+
+See [SKILL.md](SKILL.md) for a reusable, evidence-backed workflow for explaining a Git repository without inventing architecture, test results, security findings, or dependency relationships.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). When reporting a scanner issue, include a minimal non-sensitive fixture and the expected versus actual result. Never include live credentials or private source code in an issue.
