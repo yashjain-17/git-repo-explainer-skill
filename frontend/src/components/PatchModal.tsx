@@ -1,12 +1,13 @@
 // src/components/PatchModal.tsx
 import { useState } from 'react';
+import { generatePatch } from '../services/api';
 import { Button } from './Button';
 import { Card } from './Card';
 import { Chip } from './Chip';
 
 interface PatchModalProps {
   vulnerability: {
-    severity: 'HIGH' | 'MED' | 'LOW';
+    severity: 'HIGH' | 'MEDIUM';
     message: string;
     file: string;
   };
@@ -14,15 +15,23 @@ interface PatchModalProps {
 }
 
 export function PatchModal({ vulnerability, onClose }: PatchModalProps) {
-  const [isPatching, setIsPatching] = useState(false);
-  const [patched, setPatched] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [patchDiff, setPatchDiff] = useState('');
+  const [error, setError] = useState('');
 
-  const handleApplyPatch = () => {
-    setIsPatching(true);
-    setTimeout(() => {
-      setIsPatching(false);
-      setPatched(true);
-    }, 1200);
+  const handleGenerateSuggestion = async () => {
+    setIsGenerating(true);
+    setError('');
+    setPatchDiff('');
+
+    try {
+      const result = await generatePatch(vulnerability.file, vulnerability.message);
+      setPatchDiff(result.patch_diff);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to generate a suggestion.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -33,51 +42,61 @@ export function PatchModal({ vulnerability, onClose }: PatchModalProps) {
             <Chip className={vulnerability.severity === 'HIGH' ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'}>
               {vulnerability.severity} RISK
             </Chip>
-            <span className="font-bold text-[#111827] text-sm">// VULNERABILITY REMEDIATION</span>
+            <span className="font-bold text-[#111827] text-sm">
+              // LOCAL MODEL SUGGESTION
+            </span>
           </div>
-          <button onClick={onClose} className="text-[#4b5563] hover:text-[#111827] font-bold cursor-pointer text-lg px-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[#4b5563] hover:text-[#111827] font-bold cursor-pointer text-lg px-2"
+            aria-label="Close suggestion dialog"
+          >
             ✕
           </button>
         </div>
 
         <div className="flex flex-col gap-3">
           <p className="text-sm font-bold text-[#111827]">{vulnerability.message}</p>
-          <p className="text-xs text-[#4b5563]">Target File: <code className="bg-[#f9fafb] px-2 py-0.5 border border-[#e5e7eb] rounded text-[#1d4ed8]">{vulnerability.file}</code></p>
+          <p className="text-xs text-[#4b5563]">
+            Target path:{' '}
+            <code className="bg-[#f9fafb] px-2 py-0.5 border border-[#e5e7eb] rounded text-[#1d4ed8]">
+              {vulnerability.file}
+            </code>
+          </p>
+          <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 p-3 rounded-[2px] leading-relaxed">
+            The model receives the finding description and file path, not the source file.
+            Its output is an unverified suggestion. RepoLens does not apply or write patches.
+            Review and test any suggestion manually.
+          </p>
         </div>
 
-        {/* Code Diff Box */}
         <div className="flex flex-col gap-2">
-          <span className="text-xs font-bold text-[#6b7280]">// SUGGESTED SECURE CODE DIFF</span>
-          <div className="bg-[#0b1d30] text-emerald-400 p-4 rounded-[2px] text-xs font-mono leading-relaxed overflow-x-auto">
-            {!patched ? (
-              <>
-                <div className="text-rose-400">- raw_input = sys.argv[1] # Unsanitized input risk</div>
-                <div className="text-rose-400">- execute_query(raw_input)</div>
-                <div className="text-emerald-400 mt-2">+ # Secure Sanitized AST Guard</div>
-                <div className="text-emerald-400">+ from repolens.security import sanitize_cli_arg</div>
-                <div className="text-emerald-400">+ clean_arg = sanitize_cli_arg(sys.argv[1])</div>
-                <div className="text-emerald-400">+ execute_query(clean_arg)</div>
-              </>
-            ) : (
-              <div className="text-emerald-300 font-bold py-2">✓ Patch successfully compiled and injected into local workspace tree!</div>
-            )}
-          </div>
+          <span className="text-xs font-bold text-[#6b7280]">
+            // MODEL OUTPUT — REVIEW BEFORE USE
+          </span>
+          <pre className="min-h-32 max-h-72 overflow-auto whitespace-pre-wrap break-words bg-[#0b1d30] text-emerald-300 p-4 rounded-[2px] text-xs leading-relaxed">
+            {patchDiff || (error ? 'No suggestion was generated.' : 'No suggestion requested yet.')}
+          </pre>
+          {error && (
+            <p role="alert" className="text-xs text-rose-700">
+              {error}
+            </p>
+          )}
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-[#e5e7eb]">
           <Button variant="secondary" onClick={onClose} className="h-[40px] text-xs px-4">
             Close
           </Button>
-          {!patched && (
-            <Button 
-              variant="primary" 
-              onClick={handleApplyPatch} 
-              disabled={isPatching}
-              className="h-[40px] text-xs px-6"
-            >
-              {isPatching ? 'Synthesizing Patch...' : 'Apply Secure Patch ⚡'}
-            </Button>
-          )}
+          <Button
+            variant="primary"
+            onClick={handleGenerateSuggestion}
+            disabled={isGenerating}
+            className="h-[40px] text-xs px-6"
+          >
+            {isGenerating ? 'Requesting suggestion...' : patchDiff ? 'Regenerate suggestion' : 'Generate suggestion'}
+          </Button>
         </div>
       </Card>
     </div>
