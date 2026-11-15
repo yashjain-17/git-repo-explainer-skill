@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import shutil
@@ -11,10 +12,10 @@ import git
 import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-app = FastAPI(title="RepoLens Repository Explainer", version="2.7.0")
+app = FastAPI(title="RepoLens Repository Explainer", version="2.8.0")
+logger = logging.getLogger(__name__)
 
 allowed_origins = [
     origin.strip()
@@ -37,7 +38,11 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma3:4b")
 DB_PATH = Path(os.getenv("REPOLENS_DB_PATH", Path(__file__).with_name("repolens.db"))).expanduser()
 MAX_FILES = 5000
 MAX_SOURCE_BYTES = 1_000_000
-SOURCE_EXTENSIONS = {".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".go", ".rs", ".php", ".rb", ".env"}
+SOURCE_EXTENSIONS = {".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".go", ".rs", ".php", ".rb"}
+CREDENTIAL_PATTERN = re.compile(
+    r"""\b(?:api[_-]?key|secret|token)\b\s*[:=]\s*(?:['"])?([A-Za-z0-9_./+=-]{16,})(?:['"])?""",
+    re.IGNORECASE,
+)
 SKIP_DIRS = {".git", "node_modules", "build", "dist", "__pycache__", ".venv", "venv", ".next"}
 
 
@@ -62,6 +67,14 @@ init_db()
 
 class ScanRequest(BaseModel):
     repo_path: str = Field(min_length=1, max_length=2048)
+
+    @field_validator("repo_path")
+    @classmethod
+    def normalize_repo_path(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Repository path must not be blank.")
+        return normalized
 
 
 class VulnerabilityPatchRequest(BaseModel):
@@ -106,6 +119,16 @@ def _resolve_scan_target(target: str, temp_dir: str) -> tuple[Path, str]:
     return local_path, str(local_path)
 
 
+def _is_supported_source_file(file_path: Path) -> bool:
+    """Include common dotenv filenames as well as supported source extensions."""
+    name = file_path.name.lower()
+    return (
+        file_path.suffix.lower() in SOURCE_EXTENSIONS
+        or name == ".env"
+        or name.startswith(".env.")
+    )
+
+
 def check_code_security(file_path: Path):
     """Run bounded, lightweight pattern checks; this is not a full security audit."""
     try:
@@ -118,8 +141,8 @@ def check_code_security(file_path: Path):
     issues = []
     if re.search(r"\beval\s*\(", content):
         issues.append("Critical: Use of unsafe eval() function detected.")
-    if re.search(r"(?:api[_-]?key|secret|token)\s*[:=]\s*['\"][A-Za-z0-9_./+=-]{16,}['\"]", content, re.IGNORECASE):
-        issues.append("High: Potential hardcoded credential detected.")
+    if CREDENTIAL_PATTERN.search(content):
+        issues.append("High: Potential hardcoded credential-like value detected.")
     return issues
 
 
@@ -129,10 +152,19 @@ def health_check():
     try:
         response = requests.get(f"{OLLAMA_HOST}/api/tags", timeout=3)
         response.raise_for_status()
-        models = response.json().get("models", [])
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise ValueError("Unexpected Ollama response.")
+        models = payload.get("models", [])
+        if not isinstance(models, list):
+            models = []
         return {
             "status": "ONLINE",
-            "active_models": [model.get("name") for model in models if model.get("name")],
+            "active_models": [
+                model.get("name")
+                for model in models
+                if isinstance(model, dict) and model.get("name")
+            ],
         }
     except (requests.RequestException, ValueError):
         return {
@@ -159,7 +191,7 @@ def scan_repository(payload: ScanRequest):
             ]
             for filename in files:
                 source_path = Path(root) / filename
-                if source_path.is_symlink() or source_path.suffix.lower() not in SOURCE_EXTENSIONS:
+                if source_path.is_symlink() or not _is_supported_source_file(source_path):
                     continue
                 parsed_files += 1
                 if parsed_files > MAX_FILES:
@@ -203,7 +235,11 @@ def scan_repository(payload: ScanRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Failed to scan repository: {exc}") from exc
+        logger.exception("Repository scan failed")
+        raise HTTPException(
+            status_code=500,
+            detail="Repository scan failed. Check the backend logs for details.",
+        ) from exc
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
@@ -245,30 +281,29 @@ def generate_ai_patch(payload: VulnerabilityPatchRequest):
             timeout=60,
         )
         response.raise_for_status()
-        suggestion = response.json().get("response", "").strip()
-        if not suggestion:
-            raise HTTPException(status_code=502, detail="The local model returned an empty suggestion.")
-        return {"patch_diff": suggestion, "status": "SUGGESTION_ONLY"}
     except requests.RequestException as exc:
         raise HTTPException(
             status_code=503,
             detail="Local Ollama is unavailable; no patch was generated.",
         ) from exc
 
+    try:
+        payload_data = response.json()
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="The local model returned an invalid response; no patch was generated.",
+        ) from exc
 
-@app.post("/api/export-report")
-def export_report(payload: ScanRequest):
-    """Export a clearly labelled request summary; a real scan report must come from /api/scan."""
-    return JSONResponse(
-        content={
-            "project": payload.repo_path,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "engine": "RepoLens lightweight pattern scanner",
-            "status": "NOT_SCANNED",
-            "note": "This endpoint exports request metadata only; run /api/scan for scan findings.",
-        },
-        headers={"Content-Disposition": "attachment; filename=repolens-report.json"},
+    suggestion = (
+        payload_data.get("response", "").strip()
+        if isinstance(payload_data, dict)
+        and isinstance(payload_data.get("response"), str)
+        else ""
     )
+    if not suggestion:
+        raise HTTPException(status_code=502, detail="The local model returned an empty suggestion.")
+    return {"patch_diff": suggestion, "status": "SUGGESTION_ONLY"}
 
 
 if __name__ == "__main__":
