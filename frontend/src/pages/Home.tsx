@@ -10,19 +10,8 @@ export function Home() {
   const navigate = useNavigate();
   const { userEmail, logout } = useAuth();
   const [modalType, setModalType] = useState<'docs' | 'community' | null>(null);
-  const [emailInput, setEmailInput] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
-
   const scrollToCapabilities = () => {
     document.getElementById('capabilities')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (emailInput) {
-      setSubscribed(true);
-      setEmailInput('');
-    }
   };
 
   return (
@@ -53,17 +42,17 @@ export function Home() {
         <div className="flex flex-col gap-6">
           <div className="flex items-center gap-3">
             <span className="bg-[#f8b92a] text-[#0b1d30] font-mono font-bold text-xs px-3 py-1 rounded-[2px]">
-              ALPHA RELEASE // V2.4
+              LOCAL PROTOTYPE
             </span>
             <span className="font-mono text-xs text-[#374151] font-bold">LOCAL REPOSITORY SCANNING</span>
           </div>
 
           <h1 className="font-mono font-bold text-[48px] leading-[56px] text-[#111827] tracking-tight">
-            Connecting the Codebase Ecosystem.
+            Understand a repository with evidence, not guesswork.
           </h1>
 
           <p className="font-mono text-[16px] text-[#374151] leading-[26px] max-w-xl font-medium">
-            Discover real-world repository intelligence tools built around mono typography, bright golden accents, and clean isometric pipeline geometry.
+            RepoLens scans supported source and configuration files, reports selected risky patterns with repository-relative paths, and can request optional patch suggestions from a local Ollama model.
           </p>
 
           <div className="flex gap-4 items-center pt-4">
@@ -148,9 +137,9 @@ export function Home() {
                 ⚡
               </div>
               <div className="flex flex-col gap-2 font-mono">
-                <h3 className="font-bold text-lg text-[#111827]">Enterprise Local Deployment</h3>
+                <h3 className="font-bold text-lg text-[#111827]">Optional Local AI Suggestions</h3>
                 <p className="text-xs text-[#4b5563] leading-relaxed max-w-xs">
-                  Deploy Repolens locally with Ollama and Gemma for air-gapped enterprise codebases.
+                  Request patch suggestions from a locally running Ollama model. Suggestions are not applied automatically.
                 </p>
               </div>
             </div>
@@ -221,38 +210,29 @@ export function Home() {
         </div>
       </section>
 
-      {/* Stay In The Loop Section */}
+      {/* Open-source project section */}
       <section className="w-full max-w-7xl mx-auto px-8 py-12">
-        <div className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-[6px] p-12 flex flex-col md:flex-row justify-between items-center gap-8 shadow-md">
-          <div className="flex flex-col gap-4 max-w-lg font-mono">
-            <h2 className="text-3xl font-bold tracking-tight">Stay In The Loop</h2>
-            <p className="text-sm text-blue-100 leading-relaxed">
-              Find out about our upcoming local model integrations, security updates, and more by subscribing to Repolens’s monthly engineer newsletter.
+        <div className="w-full bg-[#111827] text-white border border-[#1f2937] rounded-[4px] p-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+          <div className="flex flex-col gap-4 max-w-2xl font-mono">
+            <span className="text-xs font-bold text-[#f8b92a]">// PROJECT & CONTRIBUTIONS</span>
+            <h2 className="text-2xl font-bold tracking-tight">Review the implementation. Improve it with evidence.</h2>
+            <p className="text-sm text-[#cbd5e1] leading-relaxed">
+              RepoLens is an experimental repository-analysis prototype. Its current checks are heuristic,
+              its model output is suggestion-only, and every finding needs human review.
             </p>
-            
-            {!subscribed ? (
-              <form onSubmit={handleSubscribe} className="flex gap-2 pt-2">
-                <input 
-                  type="email" 
-                  placeholder="Enter email..." 
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  className="bg-white text-gray-900 text-xs font-mono p-3 rounded-[2px] outline-none flex-1"
-                  required
-                />
-                <button type="submit" className="bg-[#f8b92a] text-[#0b1d30] font-bold text-xs px-6 py-3 rounded-[2px] hover:bg-amber-400 cursor-pointer transition-colors">
-                  Subscribe →
-                </button>
-              </form>
-            ) : (
-              <div className="bg-emerald-500 text-white p-3 rounded-[2px] text-xs font-bold text-center">
-                ✓ Successfully subscribed to Repolens updates!
-              </div>
-            )}
+            <a
+              href="https://github.com/yashjain-17/git-repo-explainer-skill"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex w-fit bg-[#f8b92a] text-[#0b1d30] font-bold text-xs px-5 py-3 rounded-[2px] hover:bg-amber-400 transition-colors"
+            >
+              View source on GitHub →
+            </a>
           </div>
-
-          <div className="w-48 h-48 bg-blue-800/50 rounded-full border border-blue-400/30 flex items-center justify-center font-mono text-xs text-blue-200 text-center p-6">
-            [ SECURE DAEMON CHANNEL ACTIVE ]
+          <div className="border border-[#4b5563] rounded-[4px] p-5 font-mono text-xs text-[#cbd5e1] leading-7">
+            <div>LOCAL-FIRST WORKFLOW</div>
+            <div>BOUNDED FILE SCAN</div>
+            <div>HUMAN REVIEW REQUIRED</div>
           </div>
         </div>
       </section>
@@ -260,7 +240,7 @@ export function Home() {
       {/* Footer */}
       <footer className="w-full bg-white border-t border-[#e5e7eb] py-12 mt-16">
         <div className="max-w-7xl mx-auto px-8 flex justify-between items-center font-mono text-xs text-[#374151] font-bold">
-          <span>© 2026 REPOLENS CORE V2. ALL RIGHTS RESERVED.</span>
+          <span>RepoLens prototype · Heuristic findings require manual review.</span>
           <span className="cursor-pointer hover:text-[#111827]" onClick={() => navigate('/dashboard')}>LAUNCH DASHBOARD →</span>
         </div>
       </footer>
@@ -283,15 +263,24 @@ export function Home() {
               {modalType === 'docs' && (
                 <div className="flex flex-col gap-3 font-medium">
                   <p className="text-[#111827] font-bold">Quick Start Guide:</p>
-                  <p>1. Ensure local Ollama service is running on port 11434.</p>
-                  <p>2. Ingest your target repository path directly into the command center.</p>
+                  <p>1. Start the FastAPI backend and the frontend as described in the repository README.</p>
+                  <p>2. Start Ollama locally if you want to request patch suggestions.</p>
+                  <p>3. Scan a directory accessible to the backend process or a public GitHub repository.</p>
+                  <p>4. Review all heuristic findings and model output manually.</p>
                 </div>
               )}
               {modalType === 'community' && (
                 <div className="flex flex-col gap-3 font-medium">
                   <p className="text-[#111827] font-bold">Connect with Builders:</p>
-                  <p>• GitHub Discussions: Share custom AST pruners and themes.</p>
-                  <p>• Discord Channel: Join 1,400+ engineers building local AI tools.</p>
+                  <p>Use the repository issue tracker to report bugs, suggest improvements, or discuss scanner limitations.</p>
+                  <a
+                    href="https://github.com/yashjain-17/git-repo-explainer-skill/issues"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[#1d4ed8] font-bold underline"
+                  >
+                    Open RepoLens issues →
+                  </a>
                 </div>
               )}
             </div>
