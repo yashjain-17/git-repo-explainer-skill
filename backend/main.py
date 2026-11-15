@@ -62,8 +62,6 @@ def init_db():
         )
 
 
-init_db()
-
 
 class ScanRequest(BaseModel):
     repo_path: str = Field(min_length=1, max_length=2048)
@@ -177,6 +175,7 @@ def health_check():
 @app.post("/api/scan")
 def scan_repository(payload: ScanRequest):
     """Scan a local directory or public GitHub repository using bounded rule checks."""
+    init_db()
     temp_dir = tempfile.mkdtemp(prefix="repolens-")
     target_path = None
     vulnerabilities = []
@@ -247,6 +246,7 @@ def scan_repository(payload: ScanRequest):
 @app.get("/api/history")
 def get_scan_history():
     """Return the latest scan history."""
+    init_db()
     try:
         with sqlite3.connect(DB_PATH) as conn:
             rows = conn.execute(
