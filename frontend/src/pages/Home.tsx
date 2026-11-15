@@ -20,7 +20,7 @@ export function Home() {
       {/* Header */}
       <header className="w-full max-w-7xl mx-auto px-8 py-8 flex justify-between items-center sticky top-0 bg-[#f5f5f5]/90 backdrop-blur-md z-50 border-b border-[#e5e7eb]/50">
         <div className="font-mono font-bold text-lg cursor-pointer flex items-center gap-2" onClick={() => navigate('/')}>
-          <span className="bg-[#f8b92a] text-[#0b1d30] px-3 py-1 rounded-[2px]">MLH</span>
+          <span className="bg-[#f8b92a] text-[#0b1d30] px-3 py-1 rounded-[2px]">RL</span>
           <span className="text-[#374151] text-sm">// REPOLENS CORE</span>
         </div>
         <nav className="flex gap-8 items-center font-mono text-sm font-semibold">
@@ -156,7 +156,7 @@ export function Home() {
         <div className="max-w-7xl mx-auto px-8 flex flex-col gap-10">
           <div className="flex flex-col gap-3 text-center md:text-left">
             <span className="font-mono text-xs text-[#f8b92a] font-bold">// ISOMETRIC REPO PIPELINE</span>
-            <h2 className="font-mono font-bold text-[32px] text-white">Modular Code Intelligence Network</h2>
+            <h2 className="font-mono font-bold text-[32px] text-white">A Bounded Repository Inspection Pipeline</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-mono">
@@ -180,7 +180,7 @@ export function Home() {
       <section id="capabilities" className="w-full max-w-7xl mx-auto px-8 py-16 flex flex-col gap-12">
         <div className="flex flex-col gap-3">
           <span className="font-mono text-xs text-[#1d4ed8] font-bold">// ARCHITECTURE CAPABILITIES</span>
-          <h2 className="font-mono font-bold text-[36px] text-[#111827]">Engineered for deep repository insights.</h2>
+          <h2 className="font-mono font-bold text-[36px] text-[#111827]">A focused set of repository inspection tools.</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
