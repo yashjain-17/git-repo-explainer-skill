@@ -121,8 +121,8 @@ export function Dashboard() {
             ← Back Home
           </Button>
           <div className="font-mono font-bold text-lg cursor-pointer flex items-center gap-2" onClick={() => navigate('/')}>
-            <span className="text-[#0b1d30] bg-[#f8b92a] px-3 py-1 rounded-[2px]">MLH</span>
-            <span className="text-[#4b5563] text-sm">// ENTERPRISE COMMAND CENTER</span>
+            <span className="text-[#0b1d30] bg-[#f8b92a] px-3 py-1 rounded-[2px]">RL</span>
+            <span className="text-[#4b5563] text-sm">// REPOSITORY SCAN DASHBOARD</span>
           </div>
         </div>
 
