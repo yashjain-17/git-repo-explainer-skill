@@ -87,7 +87,7 @@ export function Home() {
             {/* Terminal Daemon Status Indicator inside Screen */}
             <rect x="155" y="148" width="108" height="18" rx="2" fill="#2563eb"/>
             <circle cx="163" cy="157" r="3" fill="#34d399"/>
-            <text x="172" y="160" fill="#ffffff" fontFamily="monospace" fontSize="8" fontWeight="bold">DAEMON_ACTIVE // 14ms</text>
+            <text x="172" y="160" fill="#ffffff" fontFamily="monospace" fontSize="8" fontWeight="bold">LOCAL_SCAN // READY</text>
 
             {/* Flat-Bottom Keyboard Base Stand matching reference */}
             <path d="M100 220L320 220L340 240L120 240Z" fill="#ffffff" stroke="#111827" strokeWidth="2.5"/>
