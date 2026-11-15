@@ -69,13 +69,37 @@ export function Dashboard() {
   const [isScanning, setIsScanning] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
   const [sqliteHistory, setSqliteHistory] = useState<ScanHistoryEntry[]>([]);
+  const [historyError, setHistoryError] = useState('');
 
-  // Sync SQLite scan history from FastAPI backend on load
+  // Load persisted scan metadata without confusing request failures with an empty history.
   useEffect(() => {
-    getScanHistory().then((data) => {
-      if (Array.isArray(data)) setSqliteHistory(data);
-    });
+    let isMounted = true;
+
+    getScanHistory()
+      .then((data) => {
+        if (!isMounted) return;
+        setSqliteHistory(data);
+        setHistoryError('');
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setSqliteHistory([]);
+        setHistoryError('Unable to load scan history. Check the backend connection.');
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  const refreshHistory = async () => {
+    try {
+      setSqliteHistory(await getScanHistory());
+      setHistoryError('');
+    } catch {
+      setHistoryError('Scan completed, but scan history could not be refreshed.');
+    }
+  };
 
   const handleScan = async () => {
     const target = repoPath.trim();
@@ -97,7 +121,7 @@ export function Dashboard() {
 
       addReport(newRepo);
       setRepoPath('');
-      setSqliteHistory(await getScanHistory());
+      await refreshHistory();
     } catch (err) {
       console.error('Backend scan failed:', err);
       window.alert(err instanceof Error ? err.message : 'Repository scan failed. Check the backend logs.');
@@ -185,15 +209,19 @@ export function Dashboard() {
             </div>
 
             <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto">
-              {sqliteHistory.length === 0 ? (
+              {historyError ? (
+                <span role="status" className="text-xs text-rose-700">
+                  {historyError}
+                </span>
+              ) : sqliteHistory.length === 0 ? (
                 <span className="text-xs text-gray-400 italic">No backend scan records found.</span>
               ) : (
                 sqliteHistory
                   .filter((item) => item.repo_name?.toLowerCase().includes(searchFilter.toLowerCase()))
                   .map((item, idx) => (
-                    <div 
-                      key={idx}
-                      className="p-3 border rounded-[2px] cursor-pointer font-mono text-xs transition-colors flex flex-col gap-1 bg-[#f9fafb] text-[#111827] border-[#e5e7eb] hover:border-[#9ca3af]"
+                    <div
+                      key={`${item.timestamp}-${item.repo_name}-${idx}`}
+                      className="p-3 border rounded-[2px] font-mono text-xs flex flex-col gap-1 bg-[#f9fafb] text-[#111827] border-[#e5e7eb]"
                     >
                       <span className="font-bold truncate">{item.repo_name}</span>
                       <span className="text-[10px] text-[#4b5563]">
