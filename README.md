@@ -133,7 +133,7 @@ The GitHub Actions workflow runs these tests on pushes and pull requests to `mai
 - Local paths are read by the backend process. Only scan directories you own or are authorized to inspect.
 - Remote cloning is restricted to public HTTPS GitHub repository URLs. Private repositories and other Git hosts are not supported.
 - The scanner uses regular-expression pattern checks, not AST parsing, SAST, CVE matching, dependency analysis, or secret-provider validation. False positives and false negatives are expected.
-- Oversized files are skipped by the content checks. The displayed file count represents supported files encountered, not proof that every byte was analyzed.
+- Each scan is capped at 5,000 supported files and 100 MiB of eligible source content. Individual files larger than 1 MB are counted as encountered but skipped by content checks, so the displayed file count does not prove that every byte was analyzed.
 - Ollama patch output is untrusted model text. RepoLens does not apply it, compile it, or test it. Review and test suggestions manually.
 - SQLite scan history stores repository names, supported-file counts, statuses, and timestamps locally; the database and its sidecar files are ignored by Git. Set `REPOLENS_DB_PATH` to a private writable location when needed, and do not expose scan history from a shared or unauthenticated service.
 
