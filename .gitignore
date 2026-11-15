@@ -18,6 +18,10 @@ dist/
 frontend/node_modules/
 frontend/dist/
 
-# Local database sidecar and journal files
+# Local scan-history database and sidecar files
+backend/*.db
+backend/*.db-*
+backend/*.sqlite
+backend/*.sqlite-*
 *.db-journal
 *.sqlite-journal
