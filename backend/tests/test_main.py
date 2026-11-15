@@ -107,8 +107,8 @@ class RepoLensApiTests(unittest.TestCase):
     def test_scan_enforces_total_analyzed_source_limit(self):
         repository = self.temp_path / "large-source-repository"
         repository.mkdir()
-        (repository / "first.py").write_text("x=1\\n", encoding="utf-8")
-        (repository / "second.py").write_text("y=2\\n", encoding="utf-8")
+        (repository / "first.py").write_text("x=1", encoding="utf-8")
+        (repository / "second.py").write_text("y=2", encoding="utf-8")
 
         with patch.object(main, "MAX_TOTAL_SOURCE_BYTES", 5):
             response = self.client.post("/api/scan", json={"repo_path": str(repository)})
