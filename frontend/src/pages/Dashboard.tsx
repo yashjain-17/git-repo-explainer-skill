@@ -6,50 +6,47 @@ import { Card } from '../components/Card';
 import { Input } from '../components/Input';
 import { Chip } from '../components/Chip';
 import { ReportTabs } from '../components/ReportTabs';
-import { FileTree } from '../components/FileTree';
 import { SecurityMatrix } from '../components/SecurityMatrix';
-import { DependencyGraph } from '../components/DependencyGraph';
-import { ActivityStream } from '../components/ActivityStream';
 import { ExportToolbar } from '../components/ExportToolbar';
 import { ModelStatusWidget } from '../components/ModelStatusWidget';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { useAuth } from '../context/AuthContext';
-import { scanRepo, getScanHistory, exportScanReport } from '../services/api';
+import {
+  scanRepo,
+  getScanHistory,
+  exportScanReport,
+  type ScanHistoryEntry,
+} from '../services/api';
 
-const TelemetryMetricsGraphic = ({ fileCount }: { fileCount: number }) => (
-  <div className="bg-[#0b1d30] border border-[#0b1d30] p-6 rounded-[2px] font-mono text-xs flex flex-col gap-5 w-full text-white relative overflow-hidden shadow-sm">
-    <div className="absolute -right-10 -top-10 w-40 h-40 opacity-10 border border-[#f8b92a] rounded-full" />
-    
-    <div className="flex justify-between items-center z-10">
-      <span className="font-bold text-[#f8b92a] text-sm" style={{ color: '#f8b92a' }}>SESSION_TELEMETRY // LIVE</span>
-      <Chip className="bg-[#f8b92a] text-[#0b1d30]">ACTIVE_SCAN</Chip>
+const ScanSummary = ({
+  fileCount,
+  findingCount,
+}: {
+  fileCount: number;
+  findingCount: number;
+}) => (
+  <Card className="w-full bg-[#0b1d30] border-[#0b1d30] text-white flex flex-col gap-5">
+    <div className="flex justify-between items-center">
+      <span className="font-mono font-bold text-sm text-[#f8b92a]">
+        // COMPLETED SCAN SUMMARY
+      </span>
+      <Chip className="bg-[#f8b92a] text-[#0b1d30]">SCANNED</Chip>
     </div>
-    
-    <div className="grid grid-cols-3 gap-4 z-10">
-      <div className="flex flex-col gap-1 bg-white/10 p-3 rounded-[2px]">
-        <span className="text-[10px] font-bold" style={{ color: '#cbd5e1' }}>PARSED FILES</span>
-        <span className="text-2xl font-bold" style={{ color: '#ffffff' }}>{fileCount}</span>
+    <div className="grid grid-cols-2 gap-4 font-mono">
+      <div className="bg-white/10 p-4 rounded-[2px] flex flex-col gap-1">
+        <span className="text-[10px] font-bold text-[#cbd5e1]">SUPPORTED FILES</span>
+        <span className="text-3xl font-bold text-white">{fileCount}</span>
       </div>
-      <div className="flex flex-col gap-1 bg-white/10 p-3 rounded-[2px]">
-        <span className="text-[10px] font-bold" style={{ color: '#cbd5e1' }}>STATUS</span>
-        <span className="text-xl font-bold" style={{ color: '#f8b92a' }}>LOCAL SCAN</span>
-      </div>
-      <div className="flex flex-col gap-1 bg-white/10 p-3 rounded-[2px]">
-        <span className="text-[10px] font-bold" style={{ color: '#cbd5e1' }}>ERRORS</span>
-        <span className="text-2xl font-bold" style={{ color: '#ffffff' }}>0</span>
-      </div>
-    </div>
-
-    <div className="flex flex-col gap-1 z-10">
-      <div className="flex justify-between text-[10px]" style={{ color: '#cbd5e1' }}>
-        <span>PARSING PROGRESS</span>
-        <span>100%</span>
-      </div>
-      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-        <div className="h-full bg-[#f8b92a]" style={{ width: '100%' }} />
+      <div className="bg-white/10 p-4 rounded-[2px] flex flex-col gap-1">
+        <span className="text-[10px] font-bold text-[#cbd5e1]">PATTERN FINDINGS</span>
+        <span className="text-3xl font-bold text-[#f8b92a]">{findingCount}</span>
       </div>
     </div>
-  </div>
+    <p className="text-[11px] leading-relaxed text-[#cbd5e1]">
+      Counts reflect the current lightweight source-pattern scan, not a complete
+      security audit or dependency analysis.
+    </p>
+  </Card>
 );
 
 const IdleWorkspaceGraphic = () => (
@@ -71,7 +68,7 @@ export function Dashboard() {
   const [repoPath, setRepoPath] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
-  const [sqliteHistory, setSqliteHistory] = useState<any[]>([]);
+  const [sqliteHistory, setSqliteHistory] = useState<ScanHistoryEntry[]>([]);
 
   // Sync SQLite scan history from FastAPI backend on load
   useEffect(() => {
@@ -81,33 +78,29 @@ export function Dashboard() {
   }, []);
 
   const handleScan = async () => {
-    if (!repoPath) return;
+    const target = repoPath.trim();
+    if (!target || isScanning) return;
+
     setIsScanning(true);
     try {
-      // Run the backend's bounded, lightweight source-pattern scan.
-      const data = await scanRepo(repoPath);
-      
+      const data = await scanRepo(target);
       const newRepo = {
         id: `repo-${Date.now()}`,
-        repoName: data.repo_name || repoPath,
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        repoName: data.repo_name || target,
+        timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
         parsedFiles: data.parsed_files,
         breakdown: data.breakdown,
         pruningLog: data.pruningLog,
         roadmap: data.roadmap,
-        vulnerabilities: data.vulnerabilities || [
-          { severity: 'HIGH' as const, message: 'Unsanitized CLI input argument injection risk', file: `${repoPath}/cli.py` }
-        ]
+        vulnerabilities: data.vulnerabilities ?? [],
       };
-      
+
       addReport(newRepo);
       setRepoPath('');
-      
-      // Refresh SQLite backend history list
-      const updatedHistory = await getScanHistory();
-      if (Array.isArray(updatedHistory)) setSqliteHistory(updatedHistory);
+      setSqliteHistory(await getScanHistory());
     } catch (err) {
-      console.error("Backend scan failed:", err);\n      window.alert(err instanceof Error ? err.message : 'Repository scan failed. Check the backend logs.');
+      console.error('Backend scan failed:', err);
+      window.alert(err instanceof Error ? err.message : 'Repository scan failed. Check the backend logs.');
     } finally {
       setIsScanning(false);
     }
@@ -134,9 +127,10 @@ export function Dashboard() {
         </div>
 
         <div className="flex gap-4 items-center font-mono">
-          <button 
-            onClick={() => exportScanReport(currentReport?.repoName || repoPath || './repolens-core')}
-            className="bg-[#111827] text-white hover:bg-gray-800 text-xs font-bold px-4 py-2 rounded-[2px] transition-colors cursor-pointer"
+          <button
+            onClick={() => currentReport && exportScanReport(currentReport)}
+            disabled={!currentReport}
+            className="bg-[#111827] text-white hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold px-4 py-2 rounded-[2px] transition-colors cursor-pointer"
           >
             ↓ Export JSON Report
           </button>
@@ -164,22 +158,6 @@ export function Dashboard() {
               placeholder="e.g., ./my-service"
             />
             
-            <div className="flex flex-wrap gap-1.5 font-mono">
-              <span className="text-[10px] text-[#6b7280] w-full font-bold mb-1">// QUICK PRESETS:</span>
-              <button 
-                onClick={() => setRepoPath('./repolens-core')}
-                className="text-[11px] bg-[#f9fafb] border border-[#e5e7eb] text-[#374151] px-2.5 py-1 rounded-[2px] hover:border-[#1d4ed8] hover:text-[#1d4ed8] cursor-pointer transition-colors"
-              >
-                ./repolens-core
-              </button>
-              <button 
-                onClick={() => setRepoPath('https://github.com/mlh/mono-grid-v2')}
-                className="text-[11px] bg-[#f9fafb] border border-[#e5e7eb] text-[#374151] px-2.5 py-1 rounded-[2px] hover:border-[#1d4ed8] hover:text-[#1d4ed8] cursor-pointer transition-colors"
-              >
-                github.com/mlh/mono
-              </button>
-            </div>
-
             <Button 
               variant="primary" 
               onClick={handleScan}
@@ -193,9 +171,6 @@ export function Dashboard() {
           {/* Real Ollama Model Status Widget */}
           <ModelStatusWidget />
           
-          {/* Live Activity Stream */}
-          <ActivityStream />
-
           {/* SQLite Backend Scan History Card */}
           <Card className="flex flex-col gap-4 bg-white border-[#e5e7eb] shadow-sm">
             <div className="flex flex-col gap-2">
@@ -269,22 +244,17 @@ export function Dashboard() {
                   <span className="font-mono text-xs bg-[#f9fafb] border border-[#e5e7eb] px-3 py-2 rounded-[2px] font-bold">
                     Files Parsed: <strong>{currentReport.parsedFiles}</strong>
                   </span>
-                  <Chip>SECURE</Chip>
+                  <Chip>SCANNED</Chip>
                 </div>
               </Card>
 
               {/* Security Matrix with AI Patching Support */}
               <SecurityMatrix vulnerabilities={currentReport.vulnerabilities} />
 
-              <div className="grid grid-cols-1 xl:grid-cols-[1fr,380px] gap-8 items-start">
-                <div className="flex flex-col gap-8">
-                  <TelemetryMetricsGraphic fileCount={currentReport.parsedFiles} />
-                  <DependencyGraph />
-                </div>
-                <div className="xl:col-start-2 xl:row-start-1 xl:row-span-2 h-full">
-                  <FileTree />
-                </div>
-              </div>
+<ScanSummary
+                fileCount={currentReport.parsedFiles}
+                findingCount={currentReport.vulnerabilities.length}
+              />
 
               <ReportTabs data={{
                 breakdown: currentReport.breakdown,
