@@ -20,7 +20,7 @@ RepoLens is an experimental repository-analysis prototype with a FastAPI backend
 - `backend/main.py` — FastAPI endpoints and bounded scanner
 - `backend/requirements.txt` — Python runtime and API-test dependencies
 - `backend/tests/test_main.py` — backend regression tests
-- `backend/repolens.db` — currently tracked SQLite database file; inspect before sharing because it may contain local scan history
+- `backend/repolens.db` — created at runtime and ignored by Git; stores local scan-history metadata (repository name, file count, status, and timestamp)
 - `frontend/` — React + TypeScript application
 - `frontend/src/services/api.ts` — frontend API client and JSON report export
 - `SKILL.md` — evidence-backed repository inspection workflow for compatible agent-skill runners
@@ -135,7 +135,7 @@ The GitHub Actions workflow runs these tests on pushes and pull requests to `mai
 - The scanner uses regular-expression pattern checks, not AST parsing, SAST, CVE matching, dependency analysis, or secret-provider validation. False positives and false negatives are expected.
 - Oversized files are skipped by the content checks. The displayed file count represents supported files encountered, not proof that every byte was analyzed.
 - Ollama patch output is untrusted model text. RepoLens does not apply it, compile it, or test it. Review and test suggestions manually.
-- The SQLite database file is currently tracked. Do not commit real user or sensitive scan history; decide on a safe database-storage and repository-cleanup policy before public deployment.
+- SQLite scan history stores repository names, supported-file counts, statuses, and timestamps locally; the database and its sidecar files are ignored by Git. Set `REPOLENS_DB_PATH` to a private writable location when needed, and do not expose scan history from a shared or unauthenticated service.
 
 ## Agent skill
 
