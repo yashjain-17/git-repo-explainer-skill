@@ -9,7 +9,11 @@ interface ScanReport {
   breakdown: string;
   pruningLog: string;
   roadmap: string;
-  vulnerabilities: { severity: 'HIGH' | 'MED' | 'LOW'; message: string; file: string }[];
+  vulnerabilities: {
+    severity: 'HIGH' | 'MEDIUM';
+    message: string;
+    file: string;
+  }[];
 }
 
 interface WorkspaceContextType {
@@ -23,21 +27,9 @@ interface WorkspaceContextType {
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const [activeRepos, setActiveRepos] = useState<ScanReport[]>([
-    {
-      id: 'repo-01',
-      repoName: './repolens-core',
-      timestamp: '2026-10-20 12:00',
-      parsedFiles: 42,
-      breakdown: `# Core Repository Analysis\n- Full AST parsing complete.\n- Zero external leakage detected.`,
-      pruningLog: '- Pruned 14 .env and node_modules blocks.',
-      roadmap: '- Onboarding: Review main entry point in App.tsx',
-      vulnerabilities: [
-        { severity: 'MED', message: 'Hardcoded config fallback detected', file: 'src/config.ts' }
-      ]
-    }
-  ]);
-  const [currentReport, setCurrentReport] = useState<ScanReport | null>(activeRepos[0]);
+  // Workspaces are populated only by successful API responses in this browser session.
+  const [activeRepos, setActiveRepos] = useState<ScanReport[]>([]);
+  const [currentReport, setCurrentReport] = useState<ScanReport | null>(null);
 
   const addReport = (report: ScanReport) => {
     setActiveRepos((prev) => [report, ...prev]);
@@ -45,7 +37,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   };
 
   const selectReport = (id: string) => {
-    const found = activeRepos.find((r) => r.id === id);
+    const found = activeRepos.find((report) => report.id === id);
     if (found) setCurrentReport(found);
   };
 
