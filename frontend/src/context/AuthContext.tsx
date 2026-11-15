@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- Context modules intentionally export their provider and hook. */
 // src/context/AuthContext.tsx
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
