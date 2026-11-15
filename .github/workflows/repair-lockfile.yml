@@ -6,6 +6,7 @@ on:
     paths:
       - "frontend/package.json"
       - "frontend/package-lock.json"
+      - "frontend/src/context/**"
       - ".github/workflows/repair-lockfile.yml"
 
 permissions:
