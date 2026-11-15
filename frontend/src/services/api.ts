@@ -103,11 +103,11 @@ export async function generatePatch(
 }
 
 export async function getScanHistory(): Promise<ScanHistoryEntry[]> {
-  try {
-    return await requestJson<ScanHistoryEntry[]>(`${API_BASE}/history`);
-  } catch {
-    return [];
+  const history = await requestJson<ScanHistoryEntry[]>(`${API_BASE}/history`);
+  if (!Array.isArray(history)) {
+    throw new Error('The backend returned an invalid scan-history response.');
   }
+  return history;
 }
 
 export function exportScanReport(report: ScanReportExport): void {
