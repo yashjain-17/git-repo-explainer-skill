@@ -38,6 +38,7 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma3:4b")
 DB_PATH = Path(os.getenv("REPOLENS_DB_PATH", Path(__file__).with_name("repolens.db"))).expanduser()
 MAX_FILES = 5000
 MAX_SOURCE_BYTES = 1_000_000
+MAX_TOTAL_SOURCE_BYTES = 100 * 1024 * 1024
 SOURCE_EXTENSIONS = {".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".go", ".rs", ".php", ".rb"}
 CREDENTIAL_PATTERN = re.compile(
     r"""\b(?:api[_-]?key|secret|token)\b\s*[:=]\s*(?:['"])?([A-Za-z0-9_./+=-]{16,})(?:['"])?""",
@@ -83,13 +84,21 @@ class VulnerabilityPatchRequest(BaseModel):
 def _resolve_scan_target(target: str, temp_dir: str) -> tuple[Path, str]:
     """Accept a local directory or a public HTTPS GitHub repository URL only."""
     if target.startswith(("https://", "http://", "git@", "ssh://")):
-        parsed = urlparse(target)
+        try:
+            parsed = urlparse(target)
+            port = parsed.port
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail="Remote scans must use a public https://github.com/owner/repository URL.",
+            ) from exc
+
         if (
             parsed.scheme != "https"
             or parsed.hostname != "github.com"
             or parsed.username
             or parsed.password
-            or parsed.port not in (None, 443)
+            or port not in (None, 443)
             or not re.fullmatch(r"/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?/?", parsed.path)
             or parsed.query
             or parsed.fragment
@@ -108,7 +117,14 @@ def _resolve_scan_target(target: str, temp_dir: str) -> tuple[Path, str]:
                 env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
             )
         except Exception as exc:
-            raise HTTPException(status_code=400, detail=f"Unable to clone public GitHub repository: {exc}") from exc
+            logger.warning("Unable to clone public GitHub repository %s", clean_url, exc_info=True)
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Unable to clone the public GitHub repository. "
+                    "Confirm that it exists and is publicly accessible."
+                ),
+            ) from exc
         return Path(temp_dir).resolve(), clean_url
 
     local_path = Path(target).expanduser().resolve()
@@ -180,6 +196,7 @@ def scan_repository(payload: ScanRequest):
     target_path = None
     vulnerabilities = []
     parsed_files = 0
+    analyzed_source_bytes = 0
     try:
         target_path, display_name = _resolve_scan_target(payload.repo_path.strip(), temp_dir)
 
@@ -198,6 +215,21 @@ def scan_repository(payload: ScanRequest):
                         status_code=413,
                         detail=f"Repository exceeds the {MAX_FILES}-source-file scan limit.",
                     )
+
+                try:
+                    source_size = source_path.stat().st_size
+                except OSError:
+                    continue
+
+                if source_size <= MAX_SOURCE_BYTES:
+                    analyzed_source_bytes += source_size
+                    if analyzed_source_bytes > MAX_TOTAL_SOURCE_BYTES:
+                        limit_mib = MAX_TOTAL_SOURCE_BYTES // (1024 * 1024)
+                        raise HTTPException(
+                            status_code=413,
+                            detail=f"Repository exceeds the {limit_mib} MiB analyzed-source limit.",
+                        )
+
                 for issue in check_code_security(source_path):
                     vulnerabilities.append({
                         "severity": "HIGH" if issue.startswith(("Critical", "High")) else "MEDIUM",
