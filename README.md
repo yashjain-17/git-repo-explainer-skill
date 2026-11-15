@@ -141,6 +141,10 @@ The GitHub Actions workflow runs these tests on pushes and pull requests to `mai
 
 See [SKILL.md](SKILL.md) for a reusable, evidence-backed workflow for explaining a Git repository without inventing architecture, test results, security findings, or dependency relationships.
 
+## License
+
+The repository is licensed under the MIT License; see [LICENSE](LICENSE). The Ollama runtime and any model weights you download are governed by their own terms and are not relicensed by this repository.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). When reporting a scanner issue, include a minimal non-sensitive fixture and the expected versus actual result. Never include live credentials or private source code in an issue.
