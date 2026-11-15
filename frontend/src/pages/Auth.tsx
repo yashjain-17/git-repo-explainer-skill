@@ -25,7 +25,7 @@ export function Auth() {
       <div className="max-w-md w-full flex flex-col gap-6">
         <div className="flex items-center gap-3">
           <span className="bg-[#f8b92a] text-[#0b1d30] font-mono font-bold text-sm px-3 py-1 rounded-[2px]">
-            MLH
+            RL
           </span>
           <span className="font-mono text-xs text-[#6b6f76]">// REPOLENS DEMO ACCESS</span>
         </div>
