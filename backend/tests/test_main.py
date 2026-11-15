@@ -80,6 +80,42 @@ class RepoLensApiTests(unittest.TestCase):
         )
         self.assertTrue(all("sk_test_" not in finding["message"] for finding in payload["vulnerabilities"]))
 
+    def test_scan_rejects_malformed_github_port_as_bad_request(self):
+        response = self.client.post(
+            "/api/scan",
+            json={"repo_path": "https://github.com:not-a-port/owner/repository"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("public https://github.com", response.json()["detail"])
+
+    def test_remote_clone_errors_are_not_returned_to_client(self):
+        with patch.object(
+            main.git.Repo,
+            "clone_from",
+            side_effect=RuntimeError("sensitive internal clone detail"),
+        ):
+            response = self.client.post(
+                "/api/scan",
+                json={"repo_path": "https://github.com/owner/repository"},
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("publicly accessible", response.json()["detail"])
+        self.assertNotIn("sensitive internal clone detail", response.get_data(as_text=True))
+
+    def test_scan_enforces_total_analyzed_source_limit(self):
+        repository = self.temp_path / "large-source-repository"
+        repository.mkdir()
+        (repository / "first.py").write_text("x=1\\n", encoding="utf-8")
+        (repository / "second.py").write_text("y=2\\n", encoding="utf-8")
+
+        with patch.object(main, "MAX_TOTAL_SOURCE_BYTES", 5):
+            response = self.client.post("/api/scan", json={"repo_path": str(repository)})
+
+        self.assertEqual(response.status_code, 413)
+        self.assertIn("analyzed-source limit", response.json()["detail"])
+
     def test_scan_rejects_non_github_remote_urls(self):
         response = self.client.post(
             "/api/scan",
