@@ -60,6 +60,10 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
     throw new Error(message);
   }
 
+  if (response.ok && !contentType.includes('application/json')) {
+    throw new Error('The backend returned an unexpected non-JSON response.');
+  }
+
   if (payload === null) {
     throw new Error('The backend returned an empty or invalid JSON response.');
   }
