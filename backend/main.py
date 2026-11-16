@@ -114,6 +114,7 @@ def _resolve_scan_target(target: str, temp_dir: str) -> tuple[Path, str]:
                 temp_dir,
                 depth=1,
                 multi_options=["--filter=blob:none"],
+                kill_after_timeout=120,
                 env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
             )
         except Exception as exc:
