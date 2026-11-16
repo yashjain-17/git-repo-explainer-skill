@@ -173,6 +173,25 @@ class RepoLensApiTests(unittest.TestCase):
         self.assertEqual(response.json()["status"], "SUGGESTION_ONLY")
         self.assertIn("--- a/app.py", response.json()["patch_diff"])
 
+    def test_patch_endpoint_rejects_invalid_model_json(self):
+        class InvalidJsonResponse(FakeResponse):
+            def json(self):
+                raise ValueError("invalid JSON")
+
+        with patch.object(
+            main.requests,
+            "post",
+            return_value=InvalidJsonResponse({}),
+        ):
+            response = self.client.post(
+                "/api/patch",
+                json={"file_path": "app.py", "vulnerability": "Unsafe eval usage"},
+            )
+
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("invalid response", response.json()["detail"])
+        self.assertNotIn("patch_diff", response.json())
+
     def test_patch_endpoint_reports_unavailable_ollama(self):
         import requests
 
