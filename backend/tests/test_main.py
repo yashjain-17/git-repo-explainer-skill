@@ -104,6 +104,16 @@ class RepoLensApiTests(unittest.TestCase):
         self.assertIn("publicly accessible", response.json()["detail"])
         self.assertNotIn("sensitive internal clone detail", response.text)
 
+    def test_remote_clone_uses_a_finite_execution_timeout(self):
+        with patch.object(main.git.Repo, "clone_from") as clone_from:
+            response = self.client.post(
+                "/api/scan",
+                json={"repo_path": "https://github.com/owner/repository"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(clone_from.call_args.kwargs["kill_after_timeout"], 120)
+
     def test_scan_enforces_total_analyzed_source_limit(self):
         repository = self.temp_path / "large-source-repository"
         repository.mkdir()
