@@ -132,6 +132,7 @@ The GitHub Actions workflow runs these tests on pushes and pull requests to `mai
 - The API has no server-side authentication. The frontend demo gate is not a security boundary. Keep the backend on loopback or behind a properly authenticated, access-controlled service.
 - Local paths are read by the backend process. Only scan directories you own or are authorized to inspect.
 - Remote cloning is restricted to public HTTPS GitHub repository URLs. Private repositories and other Git hosts are not supported.
+- Remote clone execution is limited to 120 seconds. This bounds the Git subprocess lifetime but does not replace deployment-level CPU, memory, disk, or network quotas.
 - The scanner uses regular-expression pattern checks, not AST parsing, SAST, CVE matching, dependency analysis, or secret-provider validation. False positives and false negatives are expected.
 - Each scan is capped at 5,000 supported files and 100 MiB of eligible source content. Individual files larger than 1 MB are counted as encountered but skipped by content checks, so the displayed file count does not prove that every byte was analyzed.
 - Ollama patch output is untrusted model text. RepoLens does not apply it, compile it, or test it. Review and test suggestions manually.
